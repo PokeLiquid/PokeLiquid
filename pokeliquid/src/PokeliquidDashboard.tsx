@@ -1,5 +1,5 @@
-﻿import React, { useMemo, useState, useEffect } from "react";
-import { Home, Users, Sword, Users2, Book, ExternalLink } from "lucide-react"; // ⬅️ added ExternalLink
+﻿import { useMemo, useState, useEffect } from "react";
+import { Home, Users, Sword, Users2, Book, ExternalLink } from "lucide-react";
 
 // Pokéliquid Dashboard
 // Dark SPA with pagination sized to viewport.
@@ -30,6 +30,9 @@ const POKEMON_151 = [
     "Articuno", "Zapdos", "Moltres", "Dratini", "Dragonair", "Dragonite", "Mewtwo", "Mew"
 ];
 
+// --- types ---
+type HistoryPoint = { t: number; price: number };
+
 // Unicode-aware helpers for search/sort
 function normalizeKey(s: string): string {
     return s
@@ -44,10 +47,13 @@ function normalizeKey(s: string): string {
 }
 
 // Synthetic price history
-function genPriceHistory(seed, points = 60) {
-    const rand = (x) => { const s = Math.sin(x * 9301 + seed * 49297) * 43758.5453; return s - Math.floor(s); };
+function genPriceHistory(seed: number, points = 60): HistoryPoint[] {
+    const rand = (x: number) => {
+        const s = Math.sin(x * 9301 + seed * 49297) * 43758.5453;
+        return s - Math.floor(s);
+    };
     let price = 0.01 + (seed % 10) * 0.005;
-    const arr = [];
+    const arr: HistoryPoint[] = [];
     for (let i = 0; i < points; i++) {
         const delta = (rand(i) - 0.45) * 0.02;
         price = Math.max(0.0001, price * (1 + delta));
@@ -56,24 +62,28 @@ function genPriceHistory(seed, points = 60) {
     return arr;
 }
 
-function LineSpark({ data, width = 300, height = 80 }) {
+function LineSpark({
+    data,
+    width = 300,
+    height = 80
+}: { data: HistoryPoint[]; width?: number; height?: number }) {
     const pad = 6;
     const points = useMemo(() => {
         if (!data || data.length === 0) return '';
-        const prices = data.map(d => d.price);
+        const prices = data.map((d: HistoryPoint) => d.price);
         const min = Math.min(...prices);
         const max = Math.max(...prices);
         const range = Math.max(1e-8, max - min);
-        return data.map((d, i) => {
+        return data.map((d: HistoryPoint, i: number) => {
             const x = pad + (i / (data.length - 1)) * (width - 2 * pad);
             const y = pad + (1 - (d.price - min) / range) * (height - 2 * pad);
             return `${x},${y}`;
         }).join(' ');
     }, [data, width, height]);
 
-    const last = data[data.length - 1]?.price ?? 0;
-    const first = data[0]?.price ?? last;
-    const up = last >= first;
+    const lastNum = data[data.length - 1]?.price ?? 0;
+    const first = data[0]?.price ?? lastNum;
+    const up = lastNum >= first;
     const stroke = up ? '#00ff9d' : '#ff2e63';
 
     return (
@@ -85,11 +95,11 @@ function LineSpark({ data, width = 300, height = 80 }) {
 
 function PokemonGraph({ pokemon, history }: {
     pokemon: string;
-    history: { t: number; price: number; }[];
+    history: HistoryPoint[];
 }) {
-    const last = history[history.length - 1].price.toFixed(6);
+    const lastNum = history[history.length - 1].price;
     const first = history[0].price;
-    const pct = ((history[history.length - 1].price - first) / first * 100).toFixed(2);
+    const pct = ((lastNum - first) / first) * 100;
 
     return (
         <div className="bg-[#0d1117] border border-[#1f2937] rounded-xl p-4 shadow-lg flex flex-col relative hover:border-[#00ff9d] transition-colors">
@@ -103,8 +113,8 @@ function PokemonGraph({ pokemon, history }: {
                     <div className="text-base font-bold text-[#ffd004] tracking-wide">{pokemon}</div>
                 </div>
                 <div className="text-right">
-                    <div className="text-sm font-mono text-[#00eaff]">${last}</div>
-                    <div className={`text-xs ${pct >= 0 ? 'text-[#00ff9d]' : 'text-[#ff2e63]'}`}>{pct}%</div>
+                    <div className="text-sm font-mono text-[#00eaff]">${lastNum.toFixed(6)}</div>
+                    <div className={`text-xs ${pct >= 0 ? 'text-[#00ff9d]' : 'text-[#ff2e63]'}`}>{pct.toFixed(2)}%</div>
                 </div>
             </div>
             <div className="mt-2">
@@ -118,15 +128,18 @@ function PokemonGraph({ pokemon, history }: {
     );
 }
 
-function PokedexPage({ owned, page, setPage, perPage }: {
+function PokedexPage({
+    names, owned, page, setPage, perPage
+}: {
+    names: string[];
     owned: number[];
     page: number;
     setPage: (n: number) => void;
     perPage: number;
 }) {
     const start = page * perPage;
-    const end = Math.min(start + perPage, POKEMON_151.length);
-    const slice = POKEMON_151.slice(start, end);
+    const end = Math.min(start + perPage, names.length);
+    const slice = names.slice(start, end);
 
     return (
         <div>
@@ -135,11 +148,11 @@ function PokedexPage({ owned, page, setPage, perPage }: {
                 <span className="text-sm text-gray-400">Owned {owned.length}/{POKEMON_151.length}</span>
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-4">
-                {slice.map((name, idx) => {
-                    const id = start + idx + 1;
+                {slice.map((name) => {
+                    const id = POKEMON_151.indexOf(name) + 1; // true National Dex number
                     const isOwned = owned.includes(id);
                     return (
-                        <div key={id} className={`flex flex-col items-center p-2 rounded-lg border ${isOwned ? 'border-[#00ff9d] bg-[#0d1117]' : 'border-[#1f2937] bg-[#0d1117] opacity-40'} transition`}>
+                        <div key={`${name}-${id}`} className={`flex flex-col items-center p-2 rounded-lg border ${isOwned ? 'border-[#00ff9d] bg-[#0d1117]' : 'border-[#1f2937] bg-[#0d1117] opacity-40'} transition`}>
                             <img
                                 src={`https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${id}.png`}
                                 alt={name}
@@ -153,7 +166,7 @@ function PokedexPage({ owned, page, setPage, perPage }: {
             </div>
             <div className="flex justify-center gap-4 mt-6">
                 <button disabled={page === 0} onClick={() => setPage(page - 1)} className="px-3 py-1 border border-gray-500 rounded hover:bg-[#00eaff] hover:text-black disabled:opacity-30">Prev</button>
-                <button disabled={end >= POKEMON_151.length} onClick={() => setPage(page + 1)} className="px-3 py-1 border border-gray-500 rounded hover:bg-[#00eaff] hover:text-black disabled:opacity-30">Next</button>
+                <button disabled={end >= names.length} onClick={() => setPage(page + 1)} className="px-3 py-1 border border-gray-500 rounded hover:bg-[#00eaff] hover:text-black disabled:opacity-30">Next</button>
             </div>
         </div>
     );
@@ -170,8 +183,8 @@ export default function PokeliquidDashboard() {
     }, []);
 
     const [query, setQuery] = useState("");
-    const [sort, setSort] = useState('top_gainers');
-    const [activeTab, setActiveTab] = useState('market');
+    const [sort, setSort] = useState<'top_gainers' | 'top_price' | 'name_asc'>('top_gainers');
+    const [activeTab, setActiveTab] = useState<'market' | 'pokedex' | 'team' | 'battle' | 'dao'>('market');
     const [marketPage, setMarketPage] = useState(0);
     const [pokedexPage, setPokedexPage] = useState(0);
     const [perPage, setPerPage] = useState(12);
@@ -195,17 +208,19 @@ export default function PokeliquidDashboard() {
         return () => window.removeEventListener('resize', updatePerPage);
     }, []);
 
+    // filtered names for Pokédex search
     const pokedexNames = useMemo(() => {
         if (!query.trim()) return POKEMON_151;
         const qn = normalizeKey(query);
         return POKEMON_151.filter(n => normalizeKey(n).includes(qn));
     }, [query]);
 
+    // filtered market cards
     const filtered = useMemo(() => {
         let arr = full.slice();
         if (query.trim()) {
             const qn = normalizeKey(query);
-            arr = arr.filter(a => normalizeKey(a.pokemon).includes(qn)); // name-only, unicode-normalized
+            arr = arr.filter(a => normalizeKey(a.pokemon).includes(qn));
         }
         if (sort === 'top_gainers') {
             arr.sort((x, y) => {
@@ -291,9 +306,17 @@ export default function PokeliquidDashboard() {
                             </div>
                         </>
                     )}
+
                     {activeTab === 'pokedex' && (
-                        <PokedexPage owned={owned} page={pokedexPage} setPage={setPokedexPage} perPage={pokedexPerPage} />
+                        <PokedexPage
+                            names={pokedexNames}
+                            owned={owned}
+                            page={pokedexPage}
+                            setPage={setPokedexPage}
+                            perPage={pokedexPerPage}
+                        />
                     )}
+
                     {activeTab === 'team' && (
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                             {full.filter(item => owned.includes(item.id + 1)).map(item => (
@@ -301,12 +324,14 @@ export default function PokeliquidDashboard() {
                             ))}
                         </div>
                     )}
+
                     {activeTab === 'battle' && (
                         <div className="text-center text-gray-400 py-20">
                             <h2 className="text-2xl font-bold mb-4">Battle Arena</h2>
                             <p className="text-sm">Challenge other trainers and earn rewards!</p>
                         </div>
                     )}
+
                     {activeTab === 'dao' && (
                         <div className="text-center text-gray-400 py-20">
                             <h2 className="text-2xl font-bold mb-4">DAO</h2>
