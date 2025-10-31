@@ -9,8 +9,8 @@ const POKEMON_151 = [
     "Squirtle", "Wartortle", "Blastoise", "Caterpie", "Metapod", "Butterfree",
     "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot",
     "Rattata", "Raticate", "Spearow", "Fearow", "Ekans", "Arbok",
-    "Pikachu", "Raichu", "Sandshrew", "Sandslash", "Nidoran?", "Nidorina",
-    "Nidoqueen", "Nidoran?", "Nidorino", "Nidoking", "Clefairy", "Clefable",
+    "Pikachu", "Raichu", "Sandshrew", "Sandslash", "Nidoran (F)", "Nidorina",
+    "Nidoqueen", "Nidoran (M)", "Nidorino", "Nidoking", "Clefairy", "Clefable",
     "Vulpix", "Ninetales", "Jigglypuff", "Wigglytuff", "Zubat", "Golbat",
     "Oddish", "Gloom", "Vileplume", "Paras", "Parasect", "Venonat", "Venomoth",
     "Diglett", "Dugtrio", "Meowth", "Persian", "Psyduck", "Golduck",
@@ -38,11 +38,14 @@ function normalizeKey(s: string): string {
     return s
         .normalize('NFKD')
         .toLowerCase()
-        .replace(/[\u0300-\u036f]/g, '')  // strip diacritics safely
-        .replace(/[’'`]/g, '')            // normalize apostrophes
-        .replace(/♀/g, 'female')
-        .replace(/♂/g, 'male')
-        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/[\u0300-\u036f]/g, '')      // strip diacritics safely
+        .replace(/[’'`]/g, '')                // normalize apostrophes
+        // map both symbols and textual hints to "female"/"male"
+        .replace(/♀/g, ' female ')
+        .replace(/♂/g, ' male ')
+        .replace(/\((f|female)\)/g, ' female ')
+        .replace(/\((m|male)\)/g, ' male ')
+        .replace(/[^a-z0-9]+/g, ' ')          // collapse to alnum/space
         .trim();
 }
 
@@ -149,7 +152,7 @@ function PokedexPage({
             </div>
             <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-10 gap-4">
                 {slice.map((name) => {
-                    const id = POKEMON_151.indexOf(name) + 1; // true National Dex number
+                    const id = POKEMON_151.indexOf(name) + 1; // true National Dex number after renaming
                     const isOwned = owned.includes(id);
                     return (
                         <div key={`${name}-${id}`} className={`flex flex-col items-center p-2 rounded-lg border ${isOwned ? 'border-[#00ff9d] bg-[#0d1117]' : 'border-[#1f2937] bg-[#0d1117] opacity-40'} transition`}>

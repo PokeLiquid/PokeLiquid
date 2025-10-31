@@ -1,11 +1,6 @@
+/* pokeliquid/src/index.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-html, body, #root {
-    height: 100%;
-}
-
-body {
-    @apply bg-[#0a0f1c];
-}
+/* (optional) your custom CSS */
