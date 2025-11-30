@@ -273,7 +273,7 @@ export default function PokeliquidDashboard() {
                 <header className="mb-6 flex items-center justify-between border-b border-[#1f2937] pb-4">
                     <div>
                         <h1 className="text-3xl font-extrabold text-[#00eaff] drop-shadow-lg tracking-widest">Pokéliquid</h1>
-                        <p className="text-sm text-gray-400">Trade Spark-on-Bitcoin memecoins inspired by the original 151 Pokémon</p>
+                        <p className="text-sm text-gray-400">Trade solana memecoins inspired by the original 151 Pokémon</p>
                     </div>
                     <div className="flex gap-3 items-center">
                         {(activeTab === 'market' || activeTab === 'pokedex') && (
